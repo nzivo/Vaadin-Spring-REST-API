@@ -3,76 +3,72 @@ package com.example.demograd;
 import com.example.demograd.Dao.UserDao;
 import com.example.demograd.Editor.UserEditor;
 import com.example.demograd.Entity.User;
+import com.example.demograd.Service.UserService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.PWA;
 import org.springframework.util.StringUtils;
 
 
 @Route
+@PWA(name = "Project Base for REST API", shortName = "DEMO REST API")
 public class MainView extends VerticalLayout {
-    private final UserDao repo;
+    private TextField filterUsers = new TextField();
+    private final UserDao userDao;
+    private Grid<User> grid = new Grid<>(User.class);
     private final UserEditor userEditor;
-    final TextField filter;
-    private final Button addNewBtn;
-    final Grid<User> grid;
 
-    public MainView(UserDao repo, UserEditor userEditor) {
-        this.repo = repo;
-        this.userEditor = userEditor;
-        this.grid = new Grid<>(User.class);
-        this.filter = new TextField();
-        this.addNewBtn = new Button("New User", VaadinIcon.PLUS.create());
-
-
-        // build layout
-        HorizontalLayout actions = new HorizontalLayout(filter, addNewBtn);
-        add(actions, grid, userEditor);
-
-        grid.setHeight("300px");
-        grid.setColumns("id", "username", "address");
-        grid.getColumnByKey("id").setWidth("50px").setFlexGrow(0);
-
-        filter.setPlaceholder("Filter by last name");
-        // Hook logic to components
-
-        // Replace listing with filtered content when user changes filter
-        filter.setValueChangeMode(ValueChangeMode.EAGER);
-//        filter.addValueChangeListener(e -> listUsers(e.getValue()));
-
-        // Connect selected Customer to editor or hide if none is selected
-        grid.asSingleSelect().addValueChangeListener(e -> {
-            userEditor.editUser(e.getValue());
+    public MainView(UserDao userDao, UserEditor userEditor) {
+//        userEditor.setUser(null);
+        //Filter tab
+        filterUsers.setPlaceholder("Search by Id");
+        filterUsers .setClearButtonVisible(true);
+        filterUsers.setValueChangeMode(ValueChangeMode.EAGER);
+        Button addUserBtn = new Button("Add new User", VaadinIcon.PLUS.create());
+        addUserBtn.addClickListener(e -> {
+            grid.asSingleSelect().clear();
+            userEditor.setUser(new User());
         });
+        HorizontalLayout toolbar = new HorizontalLayout(filterUsers, addUserBtn);
 
-        // Instantiate and edit new Customer the new button is clicked
-        addNewBtn.addClickListener(e -> userEditor.editUser(new User("", "")));
+        this.userDao = userDao;
+        this.userEditor = userEditor;
+        grid.setColumns("id", "username", "address");
 
-//        // Listen changes made by the editor, refresh data from backend
-//        userEditor.setChangeHandler(() -> {
-//            userEditor.setVisible(false);
-//            listUsers(filter.getValue());
-//        });
+        HorizontalLayout mainContent = new HorizontalLayout(grid,userEditor);
+        mainContent.setSizeFull();
+        add(new H1("REST API"),toolbar,mainContent);
 
-        listUsers();
+        grid.setSizeFull();
+        updateList(null);
 
-//        add(grid);
-//        listUsers();
+        filterUsers.addValueChangeListener(e -> updateList(e.getValue()));
+
+        grid.asSingleSelect().addValueChangeListener(event -> userEditor.setUser(grid.asSingleSelect().getValue()));
+
+        userEditor.setChangeHandler(() -> {
+            userEditor.setVisible(false);
+            updateList(filterUsers.getValue());
+        });
+        updateList(null);
     }
 
-    private void listUsers() {
-
-//        if (StringUtils.isEmpty(filterText)) {
-//            grid.setItems(repo.findAll());
-//        }
-//        else {
-//            grid.setItems(repo.findByLastNameStartsWithIgnoreCase(filterText));
-//        }
-        grid.setItems(repo.findAll());
+    public void updateList(String filterUsers) {
+        if (StringUtils.isEmpty( filterUsers)) {
+            grid.setItems(userDao.findAll());
+        }
+        else {
+            int id = Integer.parseInt(filterUsers);
+            grid.setItems(userDao.findById(id));
+        }
     }
+
 }

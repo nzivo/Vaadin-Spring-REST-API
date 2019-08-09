@@ -2,9 +2,13 @@ package com.example.demograd.Editor;
 
 import com.example.demograd.Dao.UserDao;
 import com.example.demograd.Entity.User;
+import com.example.demograd.MainView;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.KeyNotifier;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -16,90 +20,65 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 @SpringComponent
 @UIScope
-public class UserEditor extends VerticalLayout implements KeyNotifier {
+public class UserEditor extends FormLayout {
+    private MainView mainView;
     private final UserDao userDao;
-    private User user;
+    private TextField username = new TextField("Username");
+    private TextField address = new TextField("Address");
 
-    TextField username = new TextField("Username");
-    TextField address = new TextField("Address");
+    private Button save = new Button("Save",VaadinIcon.CHECK.create());
+    private Button delete = new Button("Delete",VaadinIcon.TRASH.create());
 
-    Button save = new Button("Save", VaadinIcon.CHECK.create());
-    Button cancel = new Button("Cancel");
-    Button delete = new Button("Delete", VaadinIcon.TRASH.create());
-
-    HorizontalLayout actions = new HorizontalLayout(save, cancel, delete);
-
-    Binder<User> binder = new Binder<>(User.class);
+    private Binder<User> binder = new Binder<>(User.class);
     private ChangeHandler changeHandler;
 
-    @Autowired
-    public UserEditor(UserDao userDao) {
-        this.userDao = userDao;
+    public UserEditor(UserDao userDao){
+        this.userDao=userDao;
+        HorizontalLayout buttons = new HorizontalLayout(save, delete);
+        save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        add(new H3("User Details"),username, address,buttons);
 
-        add(username, address, actions);
-
-        // bind using naming convention
         binder.bindInstanceFields(this);
-
-        // Configure and style components
-        setSpacing(true);
 
         save.getElement().getThemeList().add("primary");
         delete.getElement().getThemeList().add("error");
+        save.addClickListener(event -> save());
+        delete.addClickListener(event -> delete());
 
-        addKeyPressListener(Key.ENTER, e -> save());
-
-        // wire action buttons to save, delete and reset
-        save.addClickListener(e -> save());
-        delete.addClickListener(e -> delete());
-        cancel.addClickListener(e -> editUser(user));
-        setVisible(false);
     }
 
-    void delete() {
+    private void delete() {
+        User user = binder.getBean();
         userDao.delete(user);
         changeHandler.onChange();
+//        mainView.updateList(null);
+        setUser(null);
     }
 
-    void save() {
+    private void save() {
+        User user = binder.getBean();
         userDao.save(user);
         changeHandler.onChange();
+//        mainView.updateList(null);
+        setUser(null);
     }
 
     public interface ChangeHandler {
         void onChange();
     }
 
-    public final void editUser(User user) {
+    public void setUser(User user) {
+        binder.setBean(user);
         if (user == null) {
             setVisible(false);
-            return;
+        } else {
+            setVisible(true);
+            username.focus();
         }
-        final int persisted = user.getId();
-        if (persisted <= 1) {
-            // Find fresh entity for editing
-            user = userDao.findById(user.getId());
-        }
-        else {
-            user = user;
-        }
-//        cancel.setVisible(persisted);
-
-        // Bind customer properties to similarly named fields
-        // Could also use annotation or "manual binding" or programmatically
-        // moving values from fields to entities before saving
-        binder.setBean(user);
-
-        setVisible(true);
-
-        // Focus first name initially
-        username.focus();
     }
 
     public void setChangeHandler(ChangeHandler h) {
-        // ChangeHandler is notified when either save or delete
-        // is clicked
+
         changeHandler = h;
     }
-
 }

@@ -23,6 +23,11 @@ public class User {
 
     public User(){ }
 
+    public User(String username, String address) {
+        this.username = username;
+        this.address = address;
+    }
+
     public int getId(){
         return id;
     }
@@ -45,11 +50,6 @@ public class User {
 
     public void setAddress(String address){
         this.address = address;
-    }
-
-    public User( String username, String address){
-        this.setUsername(username);
-        this.setAddress(address);
     }
 
     @Override
