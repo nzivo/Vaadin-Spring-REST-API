@@ -8,4 +8,5 @@
 The site should be as follows:
 ![alt text](https://github.com/nzivo/Vaadin-Spring-REST-API/blob/master/Capture.JPG)
 
+Updated Interface Version 1.0
 ![alt text](https://github.com/nzivo/Vaadin-Spring-REST-API/blob/master/homepage.JPG)
